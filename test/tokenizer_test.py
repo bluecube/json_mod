@@ -50,6 +50,17 @@ def identifier_test():
                             (':', json_mod.tokenize.Position(None, 1, 15)),
                             ('identifier', json_mod.tokenize.Position(None, 1, 16), 'i_s124')])
 
+def known_identifier_test():
+    data = 'true'
+    assert_iterables_equal(json_mod.tokenize.tokenize_iterable(data),
+                           [(True, json_mod.tokenize.Position(None, 1, 1))])
+    data = 'false'
+    assert_iterables_equal(json_mod.tokenize.tokenize_iterable(data),
+                           [(False, json_mod.tokenize.Position(None, 1, 1))])
+    data = 'null'
+    assert_iterables_equal(json_mod.tokenize.tokenize_iterable(data),
+                           [(None, json_mod.tokenize.Position(None, 1, 1))])
+
 def python_style_comment_test():
     data = 'a #simple\na'
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable(data),
