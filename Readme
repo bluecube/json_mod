@@ -2,16 +2,9 @@ JSON mod
 
 This is a parser of a language based on JSON intended for storing configuration files.
 
-The language is a strict superset of JSON, adding comments ( # Comment,
-// Comment, or /* Comment */ ), unquoted strings (must match regex [a-zA-Z_][a-zA-Z0-9_]*)
-and allowing extra comma after the last item of list of dictionary.
+The language is a strict superset of JSON, adding comments ( # Comment, Comment, or /* Comment */ ), unquoted strings (must match regex [a-zA-Z_][a-zA-Z0-9_]*) and allowing extra comma after the last item of a list or dictionary.
 
-The parser is written in pure python 3, and is expected to be pretty slow.
-It provides the same load(file_object) and loads(string) interface as standard json
-library, but allowing to use any iterable returning characters for the loads variant.
-If the boolean parameter enable_extensions is set to False, the parser will accept only
-pure json.
+The parser is written in pure python 3, and is expected to be fairly slow. It provides the same load(file_object) and loads(string) interface as standard json library, but allowing to use any iterable returning characters for the loads variant.  If the boolean parameter enable_extensions is set to False, the parser will accept only pure JSON.
 
 This project is incomplete and not ready to be used anywhere.
-Currently tokenizer is implemented and kind of tested with the exception of parsing numbers,
-the parser itself is written, but completely untested.
+Currently tokenizer is implemented and kind of tested with the exception of parsing numbers, the parser itself is written, but completely untested.
