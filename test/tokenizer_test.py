@@ -1,4 +1,5 @@
 import json_mod.tokenize
+import io
 from nose.tools import *
 
 def assert_iterables_equal(it1, it2):
@@ -15,17 +16,19 @@ def assert_iterables_equal(it1, it2):
         next(it2)
 
 def simple_test():
-    data = 'abcd { , [\ntrue "xyz"\n\n\n7 /* this is a comment\n! */ a'
-    assert_iterables_equal(json_mod.tokenize.tokenize_iterable(data),
+    assert_iterables_equal(json_mod.tokenize.tokenize_iterable('abcd { , [\ntrue "xyz"\n\n\n7 /* this is a comment\n! */ a'),
                            [('identifier', json_mod.tokenize.Position(None, 1, 1), 'abcd'),
                             ('{', json_mod.tokenize.Position(None, 1, 6)),
                             (',', json_mod.tokenize.Position(None, 1, 8)),
                             ('[', json_mod.tokenize.Position(None, 1, 10)),
                             (True, json_mod.tokenize.Position(None, 2, 1)),
                             ('string', json_mod.tokenize.Position(None, 2, 6), 'xyz'),
-                            ('number', json_mod.tokenize.Position(None, 5, 4), 7),
-                            ('identifier', json_mod.tokenize.Position(None, 6, 6), 'a'),
-                           ])
+                            ('number', json_mod.tokenize.Position(None, 5, 1), 7),
+                            ('identifier', json_mod.tokenize.Position(None, 6, 6), 'a')])
+
+def unexpected_character_test():
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('abc def @'))
 
 def identifier_test():
     data = 'simple'
@@ -180,6 +183,9 @@ def invalid_comment_test():
     with assert_raises(ValueError):
         list(json_mod.tokenize.tokenize_iterable('a/*/a'))
 
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('a/'))
+
 def quoted_string_test():
     data = 'a "simple" a'
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable(data),
@@ -241,12 +247,22 @@ def invalid_quoted_string_test():
         list(json_mod.tokenize.tokenize_iterable('a " b'))
     with assert_raises(ValueError):
         list(json_mod.tokenize.tokenize_iterable(r'a " b \"'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable(r'"\uxyzw"'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable(r'"\u10"'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable(r'"\u10 asdf"'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('"\\'))
 
 def json_number_test():
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('1'),
                            [('number', json_mod.tokenize.Position(None, 1, 1), 1)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('42'),
                            [('number', json_mod.tokenize.Position(None, 1, 1), 42)])
+    assert_iterables_equal(json_mod.tokenize.tokenize_iterable('0.2'),
+                           [('number', json_mod.tokenize.Position(None, 1, 1), 0.2)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('1.2'),
                            [('number', json_mod.tokenize.Position(None, 1, 1), 1.2)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('1.25'),
@@ -255,6 +271,8 @@ def json_number_test():
                            [('number', json_mod.tokenize.Position(None, 1, 1), 42.5)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('42.52'),
                            [('number', json_mod.tokenize.Position(None, 1, 1), 42.52)])
+    assert_iterables_equal(json_mod.tokenize.tokenize_iterable('5e0'),
+                           [('number', json_mod.tokenize.Position(None, 1, 1), 5e0)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('1e1'),
                            [('number', json_mod.tokenize.Position(None, 1, 1), 1e1)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('42E+1'),
@@ -268,12 +286,79 @@ def json_number_test():
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('-1.2e-1'),
                            [('number', json_mod.tokenize.Position(None, 1, 1), -1.2e-1)])
 
+    assert_iterables_equal(json_mod.tokenize.tokenize_iterable('0asdf'),
+                           [('number', json_mod.tokenize.Position(None, 1, 1), 0),
+                            ('identifier', json_mod.tokenize.Position(None, 1, 2), 'asdf')])
+
 def ext_number_test():
+    assert_iterables_equal(json_mod.tokenize.tokenize_iterable('0x1'),
+                           [('ext_number', json_mod.tokenize.Position(None, 1, 1), 1)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('0x10'),
                            [('ext_number', json_mod.tokenize.Position(None, 1, 1), 16)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('0b01001'),
-                           [('number', json_mod.tokenize.Position(None, 1, 1), 9)])
+                           [('ext_number', json_mod.tokenize.Position(None, 1, 1), 9)])
     assert_iterables_equal(json_mod.tokenize.tokenize_iterable('0o21'),
-                           [('number', json_mod.tokenize.Position(None, 1, 1), 17)])
-    assert_iterables_equal(json_mod.tokenize.tokenize_iterable('021'),
-                           [('number', json_mod.tokenize.Position(None, 1, 1), 17)])
+                           [('ext_number', json_mod.tokenize.Position(None, 1, 1), 17)])
+
+def invalid_number_test():
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('0xzzz'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('0b'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('00'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('05'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('0.'))
+    with assert_raises(ValueError):
+        print("asdf")
+        list(json_mod.tokenize.tokenize_iterable('0.abc'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('1E'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('1Easdf'))
+    with assert_raises(ValueError):
+        list(json_mod.tokenize.tokenize_iterable('1E+asdf'))
+
+def position_str_test():
+    assert_equal(str(json_mod.tokenize.Position("X", 1, 2)), "X, line 1, column 2")
+    assert_equal(str(json_mod.tokenize.Position(None, 1, 2)), "line 1, column 2")
+
+def file_positions_test():
+    fp = io.StringIO("xy\nXY")
+    fp.name = "Z"
+    assert_iterables_equal(json_mod.tokenize.positions_file(fp),
+                           [('x', json_mod.tokenize.Position("Z", 1, 1)),
+                            ('y', json_mod.tokenize.Position("Z", 1, 2)),
+                            ('\n', json_mod.tokenize.Position("Z", 1, 3)),
+                            ('X', json_mod.tokenize.Position("Z", 2, 1)),
+                            ('Y', json_mod.tokenize.Position("Z", 2, 2))])
+
+    fp = io.StringIO("xy\nXY")
+    assert_iterables_equal(json_mod.tokenize.positions_file(fp),
+                           [('x', json_mod.tokenize.Position(None, 1, 1)),
+                            ('y', json_mod.tokenize.Position(None, 1, 2)),
+                            ('\n', json_mod.tokenize.Position(None, 1, 3)),
+                            ('X', json_mod.tokenize.Position(None, 2, 1)),
+                            ('Y', json_mod.tokenize.Position(None, 2, 2))])
+
+def string_positions_test():
+    assert_iterables_equal(json_mod.tokenize.positions("xy\nXY"),
+                           [('x', json_mod.tokenize.Position(None, 1, 1)),
+                            ('y', json_mod.tokenize.Position(None, 1, 2)),
+                            ('\n', json_mod.tokenize.Position(None, 1, 3)),
+                            ('X', json_mod.tokenize.Position(None, 2, 1)),
+                            ('Y', json_mod.tokenize.Position(None, 2, 2))])
+
+def iterable_positions_test():
+    def it():
+        for c in "xy\nXY":
+            yield c
+
+    assert_iterables_equal(json_mod.tokenize.positions(it()),
+                           [('x', json_mod.tokenize.Position(None, 1, 1)),
+                            ('y', json_mod.tokenize.Position(None, 1, 2)),
+                            ('\n', json_mod.tokenize.Position(None, 1, 3)),
+                            ('X', json_mod.tokenize.Position(None, 2, 1)),
+                            ('Y', json_mod.tokenize.Position(None, 2, 2))])

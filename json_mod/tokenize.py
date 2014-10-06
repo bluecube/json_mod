@@ -8,6 +8,7 @@ symbols = {'{', '}', '[', ']', ',', ':'}
 digits = set(string.digits)
 hexdigits = set(string.hexdigits)
 whitespace = set(string.whitespace)
+number_bases = {'x': 16, 'X': 16, 'o': 8, 'O': 8, 'b': 2, 'B': 2}
 
 class Position(collections.namedtuple("Position", ["file", "line", "column"])):
     __slots__ = ()
@@ -22,13 +23,11 @@ def positions(data, filename = None):
     column = 0
 
     for char in data:
+        column += 1
+        yield (char, Position(filename, line, column))
         if char == '\n':
             line += 1
             column = 0
-        else:
-            column += 1
-
-        yield (char, Position(filename, line, column))
 
 def positions_file(fp, filename = None):
     line = 1
@@ -45,13 +44,11 @@ def positions_file(fp, filename = None):
         if len(char) == 0:
             break
 
+        column += 1
+        yield (char, Position(filename, line, column))
         if char == '\n':
             line += 1
             column = 0
-        else:
-            column += 1
-
-        yield (char, Position(filename, line, column))
 
 def tokenize_iterable(string, filename = None):
     return tokenize(positions(string, filename))
@@ -172,10 +169,9 @@ def parse_string_escape(char, position, iterator):
             if number is not None:
                 return chr(number)
 
+        raise ValueError("Invalid string escape sequence at " + str(start_position))
     except StopIteration:
-        pass
-
-    raise ValueError("Invalid string escape sequence at " + str(start_position))
+        pass # This will trigger unterminated string exception in the parse_string function anyway
 
 def parse_identifier(char, position, iterator):
     assert char in identifier_start
@@ -191,4 +187,152 @@ def parse_identifier(char, position, iterator):
     return ''.join(chars), None, None
 
 def parse_number(char, position, iterator):
-    raise NotImplementedError("Numbers are not supported yet")
+    start_position = position
+    negative = False
+
+    if char == '-':
+        negative = True
+        try:
+            char, position = next(iterator)
+        except StopIteration:
+            char = None
+
+    if char == '0':
+        try:
+            char, position = next(iterator)
+        except StopIteration:
+            char = None
+
+        try:
+            base = number_bases[char]
+        except KeyError:
+            if char == '.':
+                print("decimal")
+                return parse_number_decimal(char, position, start_position, negative, iterator)
+            elif char in digits:
+                char = None
+            else:
+                return ("number", 0, char, position)
+        else:
+            return parse_number_base(start_position, base, negative, iterator)
+
+    if char in digits:
+        return parse_number_decimal(char, position, start_position, negative, iterator)
+    else:
+        raise ValueError("Invalid number at " + str(start_position))
+
+def parse_number_base(start_position, base, negative, iterator):
+    try:
+        char, position = next(iterator)
+    except StopIteration:
+        char = None
+
+    try:
+        value = int(char, base)
+    except (ValueError, TypeError):
+        raise ValueError("Invalid number -- need at least one digit at " + str(start_position))
+
+    for char, position in iterator:
+        try:
+            value = value * base + int(char, base)
+        except ValueError:
+            break
+
+    if negative:
+        value = -value
+    return ("ext_number", value, char, position)
+
+def parse_number_decimal(char, position, start_position, negative, iterator):
+    if char in digits:
+        value = int(char)
+        char = None
+
+        for char, position in iterator:
+            try:
+                value = value * 10 + int(char)
+            except ValueError:
+                break
+            char = None
+    else:
+        assert char == '.'
+        value = 0
+
+    if char == '.':
+        fractional, char, position = parse_number_fractional(char, start_position, iterator)
+        value += fractional
+
+    if char == 'e' or char == 'E':
+        multiplier, char, position = parse_number_exponent(char, start_position, iterator)
+        value *= multiplier
+
+    if negative:
+        value = -value
+    return ("number", value, char, position)
+
+def parse_number_fractional(char, start_position, iterator):
+    assert char == '.'
+
+    try:
+        char, position = next(iterator)
+    except StopIteration:
+        char = None
+
+    if char not in digits:
+        raise ValueError("Invalid number -- missing number after decimal dot at " + str(start_position))
+
+    multiplier = 0.1
+
+    value = multiplier * int(char)
+
+    for char, position in iterator:
+        multiplier /= 10
+        try:
+            value += multiplier * int(char)
+        except ValueError:
+            break
+        char = None
+
+    return (value, char, position)
+
+def parse_number_exponent(char, start_position, iterator):
+    assert char == 'e' or char == 'E'
+
+    try:
+        char, position = next(iterator)
+    except StopIteration:
+        char = None
+
+    negative = False
+    if char == '+' or char == '-':
+        if char == '-':
+            negative = True
+
+        try:
+            char, position = next(iterator)
+        except StopIteration:
+            char = None
+
+    if char not in digits:
+        raise ValueError("Invalid number -- missing exponent at " + str(start_position))
+
+    if char in digits:
+        number = int(char)
+        print(char)
+        char = None
+    else:
+        number = 0
+
+    for char, position in iterator:
+        print(char)
+        try:
+            number = number * 10 + int(char)
+        except ValueError:
+            break
+        char = None
+
+    print(number)
+
+    if negative:
+        number = -number
+
+    return (10**number, char, position)
