@@ -333,7 +333,8 @@ def file_positions_test():
                             ('y', json_mod.tokenize.Position("Z", 1, 2)),
                             ('\n', json_mod.tokenize.Position("Z", 1, 3)),
                             ('X', json_mod.tokenize.Position("Z", 2, 1)),
-                            ('Y', json_mod.tokenize.Position("Z", 2, 2))])
+                            ('Y', json_mod.tokenize.Position("Z", 2, 2)),
+                            (None, None)])
 
     fp = io.StringIO("xy\nXY")
     assert_iterables_equal(json_mod.tokenize.positions_file(fp),
@@ -341,7 +342,8 @@ def file_positions_test():
                             ('y', json_mod.tokenize.Position(None, 1, 2)),
                             ('\n', json_mod.tokenize.Position(None, 1, 3)),
                             ('X', json_mod.tokenize.Position(None, 2, 1)),
-                            ('Y', json_mod.tokenize.Position(None, 2, 2))])
+                            ('Y', json_mod.tokenize.Position(None, 2, 2)),
+                            (None, None)])
 
 def string_positions_test():
     assert_iterables_equal(json_mod.tokenize.positions("xy\nXY"),
@@ -349,7 +351,8 @@ def string_positions_test():
                             ('y', json_mod.tokenize.Position(None, 1, 2)),
                             ('\n', json_mod.tokenize.Position(None, 1, 3)),
                             ('X', json_mod.tokenize.Position(None, 2, 1)),
-                            ('Y', json_mod.tokenize.Position(None, 2, 2))])
+                            ('Y', json_mod.tokenize.Position(None, 2, 2)),
+                            (None, None)])
 
 def iterable_positions_test():
     def it():
@@ -361,4 +364,5 @@ def iterable_positions_test():
                             ('y', json_mod.tokenize.Position(None, 1, 2)),
                             ('\n', json_mod.tokenize.Position(None, 1, 3)),
                             ('X', json_mod.tokenize.Position(None, 2, 1)),
-                            ('Y', json_mod.tokenize.Position(None, 2, 2))])
+                            ('Y', json_mod.tokenize.Position(None, 2, 2)),
+                            (None, None)])

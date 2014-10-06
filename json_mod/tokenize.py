@@ -29,6 +29,8 @@ def positions(data, filename = None):
             line += 1
             column = 0
 
+    yield None, None
+
 def positions_file(fp, filename = None):
     line = 1
     column = 0
@@ -49,6 +51,8 @@ def positions_file(fp, filename = None):
         if char == '\n':
             line += 1
             column = 0
+
+    yield None, None
 
 def tokenize_iterable(string, filename = None):
     return tokenize(positions(string, filename))
@@ -96,10 +100,7 @@ def skip_comment(char, position, iterator):
         skip_until_newline(iterator)
         return
     else:
-        try:
-            char, position = next(iterator)
-        except StopIteration:
-            char = None
+        char, position = next(iterator)
 
         if char == '/':
             skip_until_newline(iterator)
@@ -152,26 +153,23 @@ def parse_string_escape(char, position, iterator):
     assert char == '\\'
     start_position = position
 
-    try:
-        char, position = next(iterator)
-        if char in simple_escapes:
-            return simple_escapes[char]
-        elif char == 'u':
-            number = 0
-            for i in range(4):
-                char, position = next(iterator)
-                if char not in hexdigits:
-                    number = None
-                    break
-                else:
-                    number = number * 16 + int(char, 16)
+    char, position = next(iterator)
+    if char in simple_escapes:
+        return simple_escapes[char]
+    elif char == 'u':
+        number = 0
+        for i in range(4):
+            char, position = next(iterator)
+            if char not in hexdigits:
+                number = None
+                break
+            else:
+                number = number * 16 + int(char, 16)
 
-            if number is not None:
-                return chr(number)
+        if number is not None:
+            return chr(number)
 
-        raise ValueError("Invalid string escape sequence at " + str(start_position))
-    except StopIteration:
-        pass # This will trigger unterminated string exception in the parse_string function anyway
+    raise ValueError("Invalid string escape sequence at " + str(start_position))
 
 def parse_identifier(char, position, iterator):
     assert char in identifier_start
@@ -192,40 +190,26 @@ def parse_number(char, position, iterator):
 
     if char == '-':
         negative = True
-        try:
-            char, position = next(iterator)
-        except StopIteration:
-            char = None
+        char, position = next(iterator)
 
     if char == '0':
-        try:
-            char, position = next(iterator)
-        except StopIteration:
+        char, position = next(iterator)
+
+        if char in number_bases:
+            return parse_number_base(start_position, number_bases[char], negative, iterator)
+        elif char == '.':
+            return parse_number_decimal(char, position, start_position, negative, iterator)
+        elif char in digits: # Disallow numbers starting with zero
             char = None
-
-        try:
-            base = number_bases[char]
-        except KeyError:
-            if char == '.':
-                print("decimal")
-                return parse_number_decimal(char, position, start_position, negative, iterator)
-            elif char in digits:
-                char = None
-            else:
-                return ("number", 0, char, position)
         else:
-            return parse_number_base(start_position, base, negative, iterator)
-
-    if char in digits:
+            return ("number", 0, char, position)
+    elif char in digits:
         return parse_number_decimal(char, position, start_position, negative, iterator)
-    else:
-        raise ValueError("Invalid number at " + str(start_position))
+
+    raise ValueError("Invalid number at " + str(start_position))
 
 def parse_number_base(start_position, base, negative, iterator):
-    try:
-        char, position = next(iterator)
-    except StopIteration:
-        char = None
+    char, position = next(iterator)
 
     try:
         value = int(char, base)
@@ -235,7 +219,7 @@ def parse_number_base(start_position, base, negative, iterator):
     for char, position in iterator:
         try:
             value = value * base + int(char, base)
-        except ValueError:
+        except (ValueError, TypeError):
             break
 
     if negative:
@@ -248,11 +232,12 @@ def parse_number_decimal(char, position, start_position, negative, iterator):
         char = None
 
         for char, position in iterator:
+            if char is None:
+                break
             try:
                 value = value * 10 + int(char)
             except ValueError:
                 break
-            char = None
     else:
         assert char == '.'
         value = 0
@@ -272,10 +257,7 @@ def parse_number_decimal(char, position, start_position, negative, iterator):
 def parse_number_fractional(char, start_position, iterator):
     assert char == '.'
 
-    try:
-        char, position = next(iterator)
-    except StopIteration:
-        char = None
+    char, position = next(iterator)
 
     if char not in digits:
         raise ValueError("Invalid number -- missing number after decimal dot at " + str(start_position))
@@ -288,47 +270,36 @@ def parse_number_fractional(char, start_position, iterator):
         multiplier /= 10
         try:
             value += multiplier * int(char)
-        except ValueError:
+        except (ValueError, TypeError):
             break
-        char = None
 
     return (value, char, position)
 
 def parse_number_exponent(char, start_position, iterator):
     assert char == 'e' or char == 'E'
 
-    try:
-        char, position = next(iterator)
-    except StopIteration:
-        char = None
+    char, position = next(iterator)
 
     negative = False
     if char == '+' or char == '-':
         if char == '-':
             negative = True
-
-        try:
-            char, position = next(iterator)
-        except StopIteration:
-            char = None
+        char, position = next(iterator)
 
     if char not in digits:
         raise ValueError("Invalid number -- missing exponent at " + str(start_position))
 
     if char in digits:
         number = int(char)
-        print(char)
         char = None
     else:
         number = 0
 
     for char, position in iterator:
-        print(char)
         try:
             number = number * 10 + int(char)
-        except ValueError:
+        except (ValueError, TypeError):
             break
-        char = None
 
     print(number)
 
