@@ -312,7 +312,6 @@ def invalid_number_test():
     with assert_raises(ValueError):
         list(tokenize.tokenize_iterable('0.'))
     with assert_raises(ValueError):
-        print("asdf")
         list(tokenize.tokenize_iterable('0.abc'))
     with assert_raises(ValueError):
         list(tokenize.tokenize_iterable('1E'))
