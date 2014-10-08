@@ -301,8 +301,6 @@ def parse_number_exponent(char, start_position, iterator):
         except (ValueError, TypeError):
             break
 
-    print(number)
-
     if negative:
         number = -number
 
