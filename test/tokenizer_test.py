@@ -255,6 +255,10 @@ def invalid_quoted_string_test():
         list(tokenize.tokenize_iterable(r'"\u10 asdf"'))
     with assert_raises(ValueError):
         list(tokenize.tokenize_iterable('"\\'))
+    with assert_raises(ValueError):
+        list(tokenize.tokenize_iterable('"	"'))
+    with assert_raises(ValueError):
+        list(tokenize.tokenize_iterable('"\u0000"'))
 
 def json_number_test():
     assert_iterables_equal(tokenize.tokenize_iterable('1'),

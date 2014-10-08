@@ -1,5 +1,6 @@
 import string
 import collections
+import unicodedata
 
 identifier_start = set(string.ascii_letters + '_')
 identifier_inside = set(string.ascii_letters + '_' + string.digits)
@@ -137,12 +138,16 @@ def parse_string(char, position, iterator):
 
     chars = []
     for char, position in iterator:
-        if char == '"':
+        if char is None:
+            break
+        elif char == '"':
             return ''.join(chars)
         elif char == '\\':
             chars.append(parse_string_escape(char, position, iterator))
         elif char == '\n':
-            raise ValueError("Unexpected newline in string at " + str(start_position))
+            raise ValueError("Unexpected newline in string at " + str(position))
+        elif unicodedata.category(char) == 'Cc':
+            raise ValueError("Control characters are not allowed in strings at " + str(position))
         else:
             chars.append(char)
 

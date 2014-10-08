@@ -1,0 +1,6 @@
+Files in this directory come from the test suite of json.org's JSON_checker.
+
+http://www.json.org/JSON_checker/
+
+The test fail18.json was removed from the suite, because it required a nesting limit from
+the parser, which imho makes no sense.
