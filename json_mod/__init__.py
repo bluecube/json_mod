@@ -7,6 +7,6 @@ def load(fp, filename = None, enable_extensions = True):
     return parse.parse(token_stream, enable_extensions)
 
 def loads(iterable, filename = None, enable_extensions = True):
-    characters = tokenize.positions(fp, filename)
+    characters = tokenize.positions(iterable, filename)
     token_stream = tokenize.tokenize(characters, enable_extensions)
     return parse.parse(token_stream, enable_extensions)
