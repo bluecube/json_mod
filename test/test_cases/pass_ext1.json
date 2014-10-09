@@ -1,0 +1,9 @@
+/* Comment */{
+    "some data": "here", # More comments
+    // Comments EVERYEWHERE
+    unqoted_identifier: 0x1234fe,
+
+    between: /* : : " " data */ 4,
+# XXXX
+    extra1234comma: 0b1100100110,
+} # Before eof!

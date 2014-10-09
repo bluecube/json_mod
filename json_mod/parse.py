@@ -52,6 +52,7 @@ def parse_object(token, token_stream, enable_extensions):
             key = token[2]
         elif token[0] == "identifier":
             syntax_extension(token, enable_extensions)
+            key = token[2]
         elif token[0] == "}":
             if len(ret) != 0:
                 syntax_extension(token, enable_extensions)
