@@ -20,8 +20,6 @@ def parse(token_stream, enable_extensions = True):
 
     raise ValueError("Trailing data")
 
-    #TODO: Comments shoud raise the extensions exception!
-
 def syntax_extension(token, enable_extensions):
     if not enable_extensions:
         raise ValueError("Extended syntax is disabled at " + str(token[1]))

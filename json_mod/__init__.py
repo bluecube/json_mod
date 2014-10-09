@@ -2,9 +2,11 @@ from . import tokenize
 from . import parse
 
 def load(fp, filename = None, enable_extensions = True):
-    token_stream = tokenize.tokenize_file(fp, filename = filename)
+    characters = tokenize.positions_file(fp, filename)
+    token_stream = tokenize.tokenize(characters, enable_extensions)
     return parse.parse(token_stream, enable_extensions)
 
 def loads(iterable, filename = None, enable_extensions = True):
-    token_stream = tokenize.tokenize_iterable(iterable, filename = filename)
+    characters = tokenize.positions(fp, filename)
+    token_stream = tokenize.tokenize(characters, enable_extensions)
     return parse.parse(token_stream, enable_extensions)

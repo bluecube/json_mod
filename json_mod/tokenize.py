@@ -55,13 +55,7 @@ def positions_file(fp, filename = None):
 
     yield None, None
 
-def tokenize_iterable(string, filename = None):
-    return tokenize(positions(string, filename))
-
-def tokenize_file(fp, filename = None):
-    return tokenize(positions_file(fp, filename))
-
-def tokenize(it):
+def tokenize(it, enable_extensions):
     for char, position in it:
         while char is not None:
             if char in symbols:
@@ -69,6 +63,8 @@ def tokenize(it):
                 char = None
             elif char in ['/', '#']:
                 skip_comment(char, position, it)
+                if not enable_extensions:
+                    raise ValueError("Comments are not allowed with extended syntax disabled at " + str(position))
                 char = None
             elif char == '"':
                 yield "string", position, parse_string(char, position, it)
