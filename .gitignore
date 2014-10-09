@@ -1,2 +1,3 @@
 __pycache__/
 .coverage
+/json_mod.egg-info/
